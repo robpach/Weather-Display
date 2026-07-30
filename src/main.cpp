@@ -19,6 +19,12 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define SCL 6
 char buffer[32];
 
+// logo definition
+const unsigned char logo [] PROGMEM = {
+	0x80, 0x40, 0xbf, 0x40, 0xb3, 0x40, 0xb3, 0x40, 0xb3, 0x40, 0xa1, 0x40, 0xa1, 0x40, 0xbf, 0x40, 
+	0xde, 0xc0, 0xe1, 0xc0
+};
+
 // Buzzer definitions
 Buzzer buzzer(4);
 
@@ -90,22 +96,23 @@ class MyCallbacks : public BLECharacteristicCallbacks
         toggle = !toggle;
         if (toggle)
         {
+          strip.setPixelColor(0, 0, 255, 0);
+          strip.show();
+          updateWeather();
           buzzer.sound(NOTE_E5, 100);
           buzzer.sound(NOTE_F5, 100);
           buzzer.sound(NOTE_G5, 100);
-          strip.setPixelColor(0, 0, 255, 0);
-          strip.show();
           currentState = ON;
         }
         else
         {
-          buzzer.sound(NOTE_G5, 100);
-          buzzer.sound(NOTE_F5, 100);
-          buzzer.sound(NOTE_E5, 100);
           strip.setPixelColor(0, 0, 0, 0);
           strip.show();
           display.clearDisplay();
           display.display();
+          buzzer.sound(NOTE_G5, 100);
+          buzzer.sound(NOTE_F5, 100);
+          buzzer.sound(NOTE_E5, 100);
           currentState = OFF;
         }
       }
@@ -118,7 +125,7 @@ class MyServerCallbacks : public BLEServerCallbacks
   void onConnect(BLEServer *pServer)
   {
     deviceConnected = true;
-    //Serial.println("Phone connected!");
+    // Serial.println("Phone connected!");
   };
 
   void onDisconnect(BLEServer *pServer)
@@ -159,7 +166,6 @@ void setup()
   display.display();
   display.setTextSize(2);
   display.setTextColor(SSD1306_WHITE);
-
 
   // bluetooth initialization
   BLEDevice::init("fart cannon");
@@ -215,54 +221,69 @@ void loop()
 
       if (minute < 10.0)
       {
-        //Serial.printf("%i:%i%i:%i", (int)adjustedHour, 0, (int)minute, seconds);
+        // Serial.printf("%i:%i%i:%i", (int)adjustedHour, 0, (int)minute, seconds);
         sprintf(buffer, "%i:%i%i", (int)adjustedHour, 0, (int)minute);
       }
       else if (minute >= 10.0)
       {
-        //Serial.printf("%i:%i:%i", (int)adjustedHour, (int)minute, seconds);
+        // Serial.printf("%i:%i:%i", (int)adjustedHour, (int)minute, seconds);
         sprintf(buffer, "%i:%i", (int)adjustedHour, (int)minute);
       }
 
       if (hour >= 12)
       {
-        //Serial.println(" PM");
+        // Serial.println(" PM");
         sprintf(buffer + strlen(buffer), " PM");
       }
       else
       {
-        //Serial.println(" AM");
+        // Serial.println(" AM");
         sprintf(buffer + strlen(buffer), " AM");
       }
       display.setTextSize(2);
-      display.setCursor(0,0);
+      display.setCursor(2, 2);
       display.print(buffer);
 
-      display.setCursor(0,20);
+      // current temperature display
+      display.setCursor(0, 20);
       display.setTextSize(1);
       display.print("Current: ");
       display.print(currentTemp);
       display.print((char)247);
       display.print("F");
 
-      display.setCursor(0,30);
+      // high temperature display
+      display.setCursor(0, 30);
       display.print("High: ");
       display.print(highTemp);
       display.print((char)247);
-      display.print("F"); 
-      display.setCursor(0,40);
+      display.print("F");
+
+      // low temperature display
+      display.setCursor(0, 40);
       display.print("Low: ");
       display.print(lowTemp);
       display.print((char)247);
       display.print("F");
-
-      display.display();
     }
+
+    // add borders
+    int16_t x, y;
+    uint16_t w, h;
+    display.getTextBounds(buffer, 1, 2, &x, &y, &w, &h);
+    display.drawRect(0, 0, 2*(w+1), 2*(h+1), SSD1306_WHITE);
+    display.fillRect(0, 2*(h+1) - 2, 2*(w+1), 3, SSD1306_WHITE);
+
+    // add icon in top right corner
+    display.drawBitmap(100, 2, logo, 10, 10, SSD1306_WHITE);
+
+    display.display();
+
     break;
   case OFF:
     display.clearDisplay();
     display.display();
-    //Serial.println("Machine is OFF");
+    // Serial.println("Machine is OFF");
     delay(200);
     break;
   }
@@ -288,6 +309,10 @@ void updateWeather()
     float tempMin = doc["daily"]["temperature_2m_min"][0];
     sprintf(highTemp, "%.1f", tempMax);
     sprintf(lowTemp, "%.1f", tempMin);
+
+    // weather code
+    int weatherCode = doc["current"]["weather_code"];
+
   }
 
   http.end();
