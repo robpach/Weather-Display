@@ -191,6 +191,7 @@ void setup()
 
   updateWeather();
   currentState = ON;
+  toggle = 1;
 }
 
 void loop()
@@ -247,39 +248,47 @@ void loop()
       display.print(buffer);
 
       // current temperature display
-      display.setCursor(0, 20);
-      display.setTextSize(1);
-      display.print("Current: ");
+      int16_t x1, y1;
+      uint16_t w1, h1;
+      display.setCursor(2, 20);
+      display.setTextSize(2);
       display.print(currentTemp);
       display.print((char)247);
       display.print("F");
+      display.getTextBounds(currentTemp, 2, 20, &x1, &y1, &w1, &h1);
+      display.drawRect(0, 18, (w1 + 2 + 24), (h1 + 2), SSD1306_WHITE);
 
       // high temperature display
-      display.setCursor(0, 30);
-      display.print("High: ");
+      display.setTextSize(2);
+      display.setCursor(55, 20);
+      display.print("HI:");
       display.print(highTemp);
       display.print((char)247);
-      display.print("F");
+      //display.print("F");
+      
 
       // low temperature display
-      display.setCursor(0, 40);
-      display.print("Low: ");
+      display.setTextSize(2);
+      display.setCursor(55, 40);
+      display.print("LO:");
       display.print(lowTemp);
       display.print((char)247);
-      display.print("F");
+      //display.print("F");
+      
     }
 
     // add borders
     int16_t x, y;
     uint16_t w, h;
     display.getTextBounds(buffer, 1, 2, &x, &y, &w, &h);
-    display.drawRect(0, 0, 2*(w+1), 2*(h+1), SSD1306_WHITE);
-    display.fillRect(0, 2*(h+1) - 2, 2*(w+1), 3, SSD1306_WHITE);
+    display.drawRect(0, 0, 100, (h+2), SSD1306_WHITE);
+    display.fillRect(0, (h+2) - 2, 128, 3, SSD1306_WHITE);
+    display.drawRect(0, 0, 128, 64, SSD1306_WHITE);
 
     // add icon in top right corner
     //display.drawBitmap(100, 2, logo, 10, 10, SSD1306_WHITE);
 
-    drawSineWave(6, 6, 30);
+    drawSineWave(8, 6, 27);
     display.display();
 
     break;
@@ -289,6 +298,22 @@ void loop()
     // Serial.println("Machine is OFF");
     delay(200);
     break;
+  }
+
+  if (hour == 6 && minute == 0 && seconds == 0)
+  {
+    currentState = ON;
+    buzzer.sound(NOTE_E5, 100);
+    buzzer.sound(NOTE_F5, 100);
+    buzzer.sound(NOTE_B6, 1000);
+    delay(1000);
+    buzzer.sound(NOTE_E5, 100);
+    buzzer.sound(NOTE_F5, 100);
+    buzzer.sound(NOTE_B6, 1000);
+    delay(1000);
+    buzzer.sound(NOTE_E5, 100);
+    buzzer.sound(NOTE_F5, 100);
+    buzzer.sound(NOTE_B6, 1000);
   }
 }
 
@@ -305,13 +330,13 @@ void updateWeather()
 
     // Current Temperature
     float tempCurrent = doc["current"]["temperature_2m"];
-    sprintf(currentTemp, "%.1f", tempCurrent);
+    sprintf(currentTemp, "%.0f", tempCurrent);
 
     // Today's High & Low (First element in the daily arrays)
     float tempMax = doc["daily"]["temperature_2m_max"][0];
     float tempMin = doc["daily"]["temperature_2m_min"][0];
-    sprintf(highTemp, "%.1f", tempMax);
-    sprintf(lowTemp, "%.1f", tempMin);
+    sprintf(highTemp, "%.0f", tempMax);
+    sprintf(lowTemp, "%.0f", tempMin);
 
     // weather code
     int weatherCode = doc["current"]["weather_code"];
